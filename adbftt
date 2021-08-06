@@ -1,0 +1,120 @@
+#!/bin/bash
+
+
+LOCAL_FILE_COUNTER_START=0
+REMOTE_FILE_COUNTER_START=0
+
+function getScreenDimensions() {
+    ROWS=$(tput lines)
+    COLS=$(tput cols)
+
+    ROWS_REMAINING=$((ROWS - 4))
+    LEFT_COLUMNS_REMAINING=$((COLS / 2 - 2))
+    RIGHT_COLUMNS_REMAINING=$((COLS / 2 - 2))
+}
+
+function getLocalFileList() {
+    path=$1
+    if [[ -z path ]]
+    then
+        path=/
+    fi
+    LOCAL_FILE_LIST=(`ls -a $path`)
+}
+
+function getRemoteFileList() {
+    path=$1
+    if [[ -z path ]]
+    then
+        path=/
+    fi
+    REMOTE_FILE_LIST=(`adb shell ls $path`)
+}
+
+
+function createFrame() {
+    # upper horizontal line
+    echo -ne +
+
+    for (( i=1; i<=LEFT_COLUMNS_REMAINING; i++ ))
+    do
+        echo -ne -
+    done
+
+    echo -ne +
+
+    for (( i=1; i<=RIGHT_COLUMNS_REMAINING; i++ ))
+    do
+        echo -ne -
+    done
+
+    echo +
+
+    localFileListCounter=0
+    remoteFileListCounter=0
+    # right, left and centre vertical lines 
+    for (( i = 1; i<=ROWS_REMAINING; i++ ))
+    do
+        echo -ne "|"
+        echo -ne " "
+
+        sizeOfLocalFileName=0
+        echo -ne ${LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]}
+        sizeOfLocalFileName=${#LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]}
+        localFileListCounter=$((localFileListCounter + 1))
+
+        for (( j=1; j<=LEFT_COLUMNS_REMAINING - 2 - $sizeOfLocalFileName; j++ ))
+        do
+            echo -ne " "
+        done
+        echo -ne " "
+        echo -ne "|"
+        echo -ne " "
+
+        sizeOfRemoteFileName=0
+        echo -ne ${REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]}
+        sizeOfRemoteFileName=${#REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]}
+        remoteFileListCounter=$((remoteFileListCounter + 1))
+
+        for (( j=1; j<=RIGHT_COLUMNS_REMAINING - 2 - $sizeOfRemoteFileName; j++ ))
+        do
+            echo -ne " "
+        done
+
+        echo -ne " "
+        echo "|"
+    done
+
+    # lower horizontal line
+    echo -ne +
+
+    for (( i=1; i<=LEFT_COLUMNS_REMAINING; i++ ))
+    do
+        echo -ne -
+    done
+
+    echo -ne +
+
+    for (( i=1; i<=RIGHT_COLUMNS_REMAINING; i++ ))
+    do
+        echo -ne -
+    done
+
+    echo +
+}
+
+function render() {
+    clear
+    getScreenDimensions
+    getLocalFileList "$HOME"
+    getRemoteFileList
+    createFrame
+}
+
+render
+trap render SIGWINCH
+
+while true
+do
+    sleep 1
+done
