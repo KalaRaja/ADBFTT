@@ -42,7 +42,7 @@ function getLocalFileList() {
     then
         path=/
     fi
-    LOCAL_FILE_LIST=(`ls $path`)
+    LOCAL_FILE_LIST=(`ls -a $path`)
 }
 
 function getRemoteFileList() {
@@ -184,6 +184,59 @@ function createFrame() {
     drawTopOrBottomBorder "nocolor"
 }
 
+function handleScroll() {
+    local currentList=()
+    local currentListSelectIndex=0
+
+    if [[ $OPTION == "LEFT_BOX" ]]
+    then
+        currentList=(${LOCAL_FILE_LIST[@]})
+        currentListSelectIndex=$LOCAL_SELECT_INDEX
+        currentListCounterStart=$LOCAL_FILE_COUNTER_START
+    else
+        currentList=(${REMOTE_FILE_LIST[@]})
+        currentListSelectIndex=$REMOTE_SELECT_INDEX
+        currentListCounterStart=$REMOTE_FILE_COUNTER_START
+    fi
+
+    if [[ $SELECTION == 'DOWN' ]]
+    then
+        if [[ $((currentListSelectIndex + 1)) -lt ${#currentList[@]} ]]
+        then
+            currentListSelectIndex=$((currentListSelectIndex + 1))
+        fi
+
+        if [[ $ROWS_REMAINING -le ${#currentList[@]} ]]
+        then
+            if [[ $currentListSelectIndex -gt $((currentListCounterStart + ROWS_REMAINING - 1)) ]]
+            then
+                currentListCounterStart=$((currentListCounterStart + 1))
+                currentListSelectIndex=$((currentListCounterStart + ROWS_REMAINING - 1))
+            fi
+        fi
+    else
+        if [[ $((currentListSelectIndex - 1)) -ge 0 ]]
+        then
+            currentListSelectIndex=$((currentListSelectIndex - 1))
+        fi
+
+        if [[ $currentListSelectIndex -lt $currentListCounterStart ]]
+        then
+            currentListCounterStart=$((currentListCounterStart - 1))
+            currentListSelectIndex=$currentListCounterStart
+        fi
+    fi
+
+    if [[ $OPTION == "LEFT_BOX" ]]
+    then
+        LOCAL_SELECT_INDEX=$currentListSelectIndex
+        LOCAL_FILE_COUNTER_START=$currentListCounterStart
+    else
+        REMOTE_SELECT_INDEX=$currentListSelectIndex
+        REMOTE_FILE_COUNTER_START=$currentListCounterStart
+    fi
+}
+
 function userChoiceMapper() {
     local choice=$1
     if [[ $choice == "a" ]]
@@ -195,31 +248,11 @@ function userChoiceMapper() {
     elif [[ $choice == "w" ]]
     then
         SELECTION="UP"
-        handleNavigation
+        handleScroll
     elif [[ $choice == 's' ]]
     then
         SELECTION="DOWN"
-        handleNavigation
-    fi
-}
-
-function handleNavigation() {
-    if [[ $OPTION == "LEFT_BOX" ]]
-        then
-            if [[ $SELECTION == "UP" ]]
-            then
-                LOCAL_SELECT_INDEX=$((LOCAL_SELECT_INDEX - 1))
-            else
-                LOCAL_SELECT_INDEX=$((LOCAL_SELECT_INDEX + 1))
-            fi
-    elif [[ $OPTION == "RIGHT_BOX" ]]
-        then
-            if [[ $SELECTION == "UP" ]]
-            then
-                REMOTE_SELECT_INDEX=$((REMOTE_SELECT_INDEX - 1))
-            else
-                REMOTE_SELECT_INDEX=$((REMOTE_SELECT_INDEX + 1))
-            fi
+        handleScroll
     fi
 }
 
