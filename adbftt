@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+# modify these indeces for scrolling action
 LOCAL_FILE_COUNTER_START=0
 REMOTE_FILE_COUNTER_START=0
 
@@ -8,9 +8,9 @@ function getScreenDimensions() {
     ROWS=$(tput lines)
     COLS=$(tput cols)
 
-    ROWS_REMAINING=$((ROWS - 4))
-    LEFT_COLUMNS_REMAINING=$((COLS / 2 - 2))
-    RIGHT_COLUMNS_REMAINING=$((COLS / 2 - 2))
+    ROWS_REMAINING=$((ROWS - 4)) #to prevent scroll bar in terminal
+    LEFT_COLUMNS_REMAINING=$((COLS / 2 - 2)) #remove extra cols because of 2 `+` symbols
+    RIGHT_COLUMNS_REMAINING=$((COLS / 2 - 2)) #remove extra cols because of 1 `+` symbol
 }
 
 function getLocalFileList() {
@@ -52,18 +52,18 @@ function createFrame() {
 
     localFileListCounter=0
     remoteFileListCounter=0
-    # right, left and centre vertical lines 
+    # right, left and centre vertical lines and file list
     for (( i = 1; i<=ROWS_REMAINING; i++ ))
     do
         echo -ne "|"
         echo -ne " "
 
         sizeOfLocalFileName=0
-        echo -ne ${LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]}
+        echo -ne ${LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]} #modify LOCAL_FILE_COUNTER_START for scrolling action
         sizeOfLocalFileName=${#LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]}
         localFileListCounter=$((localFileListCounter + 1))
 
-        for (( j=1; j<=LEFT_COLUMNS_REMAINING - 2 - $sizeOfLocalFileName; j++ ))
+        for (( j=1; j<=LEFT_COLUMNS_REMAINING - 2 - $sizeOfLocalFileName; j++ )) #subtract 2 for extra spaces
         do
             echo -ne " "
         done
@@ -72,11 +72,11 @@ function createFrame() {
         echo -ne " "
 
         sizeOfRemoteFileName=0
-        echo -ne ${REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]}
+        echo -ne ${REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]} #modify REMOTE_FILE_COUNTER_START for scrolling action
         sizeOfRemoteFileName=${#REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]}
         remoteFileListCounter=$((remoteFileListCounter + 1))
 
-        for (( j=1; j<=RIGHT_COLUMNS_REMAINING - 2 - $sizeOfRemoteFileName; j++ ))
+        for (( j=1; j<=RIGHT_COLUMNS_REMAINING - 2 - $sizeOfRemoteFileName; j++ )) #subtract 2 for extra spaces
         do
             echo -ne " "
         done
