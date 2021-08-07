@@ -7,6 +7,7 @@ REMOTE_FILE_COUNTER_START=0
 LOCAL_SELECT_INDEX=LOCAL_FILE_COUNTER_START
 REMOTE_SELECT_INDEX=REMOTE_FILE_COUNTER_START
 
+# remote file manager is selected b default
 OPTION='RIGHT_BOX'
 
 function getScreenDimensions() {
@@ -201,29 +202,28 @@ function handleScroll() {
 
     if [[ $SELECTION == 'DOWN' ]]
     then
-        if [[ $((currentListSelectIndex + 1)) -lt ${#currentList[@]} ]]
+        if [[ $((currentListSelectIndex + 1)) -lt ${#currentList[@]} ]] # check bottom boundary
         then
             currentListSelectIndex=$((currentListSelectIndex + 1))
         fi
 
-        if [[ $ROWS_REMAINING -le ${#currentList[@]} ]]
+
+        if [[ $currentListSelectIndex -gt $((currentListCounterStart + ROWS_REMAINING - 1)) ]] # if currently selected item is the bottom most
         then
-            if [[ $currentListSelectIndex -gt $((currentListCounterStart + ROWS_REMAINING - 1)) ]]
-            then
-                currentListCounterStart=$((currentListCounterStart + 1))
-                currentListSelectIndex=$((currentListCounterStart + ROWS_REMAINING - 1))
-            fi
+            currentListCounterStart=$((currentListCounterStart + 1)) #scroll 1 position up
+            currentListSelectIndex=$((currentListCounterStart + ROWS_REMAINING - 1)) # select the new bottom element
         fi
+        
     else
-        if [[ $((currentListSelectIndex - 1)) -ge 0 ]]
+        if [[ $((currentListSelectIndex - 1)) -ge 0 ]] # check top boundary
         then
             currentListSelectIndex=$((currentListSelectIndex - 1))
         fi
 
-        if [[ $currentListSelectIndex -lt $currentListCounterStart ]]
+        if [[ $currentListSelectIndex -lt $currentListCounterStart ]] # if currently selected item is the top most
         then
-            currentListCounterStart=$((currentListCounterStart - 1))
-            currentListSelectIndex=$currentListCounterStart
+            currentListCounterStart=$((currentListCounterStart - 1)) # scroll 1 position down
+            currentListSelectIndex=$currentListCounterStart # select the new top element
         fi
     fi
 
