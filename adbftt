@@ -13,6 +13,18 @@ function getScreenDimensions() {
     RIGHT_COLUMNS_REMAINING=$((COLS / 2 - 2)) #remove extra cols because of 1 `+` symbol
 }
 
+function printInColor() {
+    local color=0
+    if [[ $1 == 'green' ]]
+    then
+        color='\033[0;32m'
+    else
+        color='\033[0m'
+    fi
+    
+    echo -ne $color$2'\033[0m'
+}
+
 function getLocalFileList() {
     path=$1
     if [[ -z path ]]
@@ -33,33 +45,43 @@ function getRemoteFileList() {
 
 
 function createFrame() {
+
+    local left_box_color='nocolor'
+    local right_box_color='green'
+
+    if [[ $OPTION == 'LEFT_BOX' ]]
+    then
+        left_box_color='green'
+        right_box_color='nocolor'
+    fi
+
     # upper horizontal line
-    echo -ne +
+    printInColor $left_box_color '+'
 
     for (( i=1; i<=LEFT_COLUMNS_REMAINING; i++ ))
     do
-        echo -ne -
+        printInColor $left_box_color '-'
     done
 
-    echo -ne +
+    printInColor $left_box_color '+'
 
     for (( i=1; i<=RIGHT_COLUMNS_REMAINING; i++ ))
     do
-        echo -ne -
+        printInColor $right_box_color '-'
     done
 
-    echo +
+    printInColor $right_box_color '+\n'
 
     localFileListCounter=0
     remoteFileListCounter=0
     # right, left and centre vertical lines and file list
     for (( i = 1; i<=ROWS_REMAINING; i++ ))
     do
-        echo -ne "|"
+        printInColor $left_box_color '|'
         echo -ne " "
 
         sizeOfLocalFileName=0
-        echo -ne ${LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]} #modify LOCAL_FILE_COUNTER_START for scrolling action
+        printInColor $left_box_color ${LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]} #modify LOCAL_FILE_COUNTER_START for scrolling action
         sizeOfLocalFileName=${#LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]}
         localFileListCounter=$((localFileListCounter + 1))
 
@@ -68,11 +90,11 @@ function createFrame() {
             echo -ne " "
         done
         echo -ne " "
-        echo -ne "|"
+        printInColor 'green' '|'
         echo -ne " "
 
         sizeOfRemoteFileName=0
-        echo -ne ${REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]} #modify REMOTE_FILE_COUNTER_START for scrolling action
+        printInColor $right_box_color ${REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]} #modify REMOTE_FILE_COUNTER_START for scrolling action
         sizeOfRemoteFileName=${#REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]}
         remoteFileListCounter=$((remoteFileListCounter + 1))
 
@@ -82,25 +104,37 @@ function createFrame() {
         done
 
         echo -ne " "
-        echo "|"
+        printInColor $right_box_color "|\n"
     done
 
     # lower horizontal line
-    echo -ne +
+    printInColor $left_box_color '+'
 
     for (( i=1; i<=LEFT_COLUMNS_REMAINING; i++ ))
     do
-        echo -ne -
+        printInColor $left_box_color '-'
     done
 
-    echo -ne +
+    printInColor 'green' '+'
 
     for (( i=1; i<=RIGHT_COLUMNS_REMAINING; i++ ))
     do
-        echo -ne -
+        printInColor $right_box_color '-'
     done
 
-    echo +
+    printInColor $right_box_color '+\n'
+}
+
+function userChoiceMapper() {
+    local choice=$1
+
+    if [[ $choice == 1 ]]
+    then
+        OPTION='LEFT_BOX'
+    elif [[ $choice == 2 ]]
+    then
+        OPTION='RIGHT_BOX'
+    fi
 }
 
 function render() {
@@ -111,10 +145,15 @@ function render() {
     createFrame
 }
 
-render
-trap render SIGWINCH
+#render
+#trap render SIGWINCH
 
-while true
+user_choice='a'
+
+
+while [ $user_choice != 'q' ]
 do
-    sleep 1
+    render
+    read -n 1 user_choice
+    userChoiceMapper $user_choice
 done
