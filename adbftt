@@ -4,6 +4,11 @@
 LOCAL_FILE_COUNTER_START=0
 REMOTE_FILE_COUNTER_START=0
 
+LOCAL_SELECT_INDEX=LOCAL_FILE_COUNTER_START
+REMOTE_SELECT_INDEX=REMOTE_FILE_COUNTER_START
+
+OPTION='RIGHT_BOX'
+
 function getScreenDimensions() {
     ROWS=$(tput lines)
     COLS=$(tput cols)
@@ -21,6 +26,9 @@ function printInColor() {
     if [[ $1 == 'green' ]]
     then
         color='\033[1;92m'
+    elif [[ $1 == 'blue' ]]
+    then
+        color='\033[1;94m'
     else
         color='\033[0m'
     fi
@@ -34,7 +42,7 @@ function getLocalFileList() {
     then
         path=/
     fi
-    LOCAL_FILE_LIST=(`ls -a $path`)
+    LOCAL_FILE_LIST=(`ls $path`)
 }
 
 function getRemoteFileList() {
@@ -86,7 +94,7 @@ function drawRowsAndBoxes() {
     echo -ne " "
     printInColor $color "|\n"
 
-    # left, right abd center rows
+    # left, right and center rows
     localFileListCounter=0
     remoteFileListCounter=0
     for (( i = 1; i<=ROWS_REMAINING; i++ ))
@@ -96,8 +104,14 @@ function drawRowsAndBoxes() {
         printInColor $left_box_color "|"
         echo -ne " "
 
-        printInColor $left_box_color ${LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]} #modify LOCAL_FILE_COUNTER_START for scrolling action
-        sizeOfLocalFileName=${#LOCAL_FILE_LIST[localFileListCounter + LOCAL_FILE_COUNTER_START]}
+        local_file_index=$((localFileListCounter + LOCAL_FILE_COUNTER_START)) #modify LOCAL_FILE_COUNTER_START for scrolling action
+        if [[ $local_file_index -eq $LOCAL_SELECT_INDEX ]]
+        then
+            printInColor 'blue' ${LOCAL_FILE_LIST[$local_file_index]} 
+        else
+            printInColor $left_box_color ${LOCAL_FILE_LIST[$local_file_index]} #modify LOCAL_FILE_COUNTER_START for scrolling action
+        fi
+        sizeOfLocalFileName=${#LOCAL_FILE_LIST[local_file_index]}
         localFileListCounter=$((localFileListCounter + 1))
 
         for (( j=1; j<=LEFT_COLS_REMAINING - $sizeOfLocalFileName - 1; j++ )) # account foe extra space
@@ -110,8 +124,14 @@ function drawRowsAndBoxes() {
         printInColor $right_box_color "|"
         echo -ne " "
 
-        printInColor $right_box_color ${REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]} #modify REMOTE_FILE_COUNTER_START for scrolling action
-        sizeOfRemoteFileName=${#REMOTE_FILE_LIST[remoteFileListCounter + REMOTE_FILE_COUNTER_START]}
+        remote_file_index=$((remoteFileListCounter + REMOTE_FILE_COUNTER_START)) #modify REMOTE_FILE_COUNTER_START for scrolling action
+        if [[ $remote_file_index -eq $REMOTE_SELECT_INDEX ]]
+        then
+            printInColor 'blue' ${REMOTE_FILE_LIST[remote_file_index]}
+        else
+            printInColor $right_box_color ${REMOTE_FILE_LIST[remote_file_index]} 
+        fi
+        sizeOfRemoteFileName=${#REMOTE_FILE_LIST[remote_file_index]}
         remoteFileListCounter=$((remoteFileListCounter + 1))
 
         for (( j=1; j<=RIGHT_COLS_REMAINING - $sizeOfRemoteFileName - 1; j++ )) #subtract 1 for extra space
@@ -168,10 +188,38 @@ function userChoiceMapper() {
     local choice=$1
     if [[ $choice == "a" ]]
     then
-        OPTION='LEFT_BOX'
+        OPTION="LEFT_BOX"
     elif [[ $choice == "d" ]]
     then
         OPTION='RIGHT_BOX'
+    elif [[ $choice == "w" ]]
+    then
+        SELECTION="UP"
+        handleNavigation
+    elif [[ $choice == 's' ]]
+    then
+        SELECTION="DOWN"
+        handleNavigation
+    fi
+}
+
+function handleNavigation() {
+    if [[ $OPTION == "LEFT_BOX" ]]
+        then
+            if [[ $SELECTION == "UP" ]]
+            then
+                LOCAL_SELECT_INDEX=$((LOCAL_SELECT_INDEX - 1))
+            else
+                LOCAL_SELECT_INDEX=$((LOCAL_SELECT_INDEX + 1))
+            fi
+    elif [[ $OPTION == "RIGHT_BOX" ]]
+        then
+            if [[ $SELECTION == "UP" ]]
+            then
+                REMOTE_SELECT_INDEX=$((REMOTE_SELECT_INDEX - 1))
+            else
+                REMOTE_SELECT_INDEX=$((REMOTE_SELECT_INDEX + 1))
+            fi
     fi
 }
 
