@@ -43,7 +43,7 @@ function getLocalFileList() {
     then
         path=/
     fi
-    LOCAL_FILE_LIST=(`ls -a $path`)
+    LOCAL_FILE_LIST=(`ls $path`)
 }
 
 function getRemoteFileList() {
@@ -264,8 +264,16 @@ function render() {
     createFrame
 }
 
-#render
-trap render SIGWINCH
+function handleWindowResize() {
+    #reset scroll until a good solution
+    LOCAL_FILE_COUNTER_START=0
+    REMOTE_SELECT_INDEX=0
+    LOCAL_SELECT_INDEX=0
+    REMOTE_FILE_COUNTER_START=0
+    render
+}
+
+trap handleWindowResize SIGWINCH
 
 user_choice="="
 
