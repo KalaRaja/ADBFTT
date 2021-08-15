@@ -2,7 +2,8 @@
 
 setScreenParams() {
     tput clear
-    tput civis 
+    tput civis
+    PADDING=1
 }
 
 tearDown() {
@@ -34,8 +35,8 @@ function printInColor() {
 drawBox() {
     local x=$1
     local y=$2
-    local w=$3
-    local h=$4
+    local h=$3
+    local w=$4
     local color=$5
 
     tput cup $x $y
@@ -68,6 +69,7 @@ drawBox() {
     printInColor $color "+"
 
     tput cup $((x + 1)) $((y + w - 1))
+
     # right vertical edge
     for (( i = 1; i <= $h - 2; i++))
     do
@@ -77,8 +79,31 @@ drawBox() {
 
 }
 
+initScreen() {
+    local main_border_r=0
+    local main_border_c=0
+
+    drawBox $main_border_r $main_border_c $ROWS $COLS green
+
+    # for some reason, no padding is required when computing rows
+    LOCAL_FS_ROWS=$((ROWS - 2))
+    REMOTE_FS_ROWS=$((ROWS - 2))
+
+    LOCAL_FS_COLS=$(((COLS - PADDING - 2) / 2)) # account for left padding from main border, 2 vertical edges of main border
+    REMOTE_FS_COLS=$(((COLS - PADDING - 2) / 2 - 1)) # account for left padding from main border, 2 vertical edges of main border and one middle padding
+
+    # draw box for local fs
+    # for some reason, no padding is required when computing rows
+    drawBox $((main_border_r + 1)) $((main_border_c + PADDING + 1)) $LOCAL_FS_ROWS $LOCAL_FS_COLS "blue"
+
+    # draw box for remote fs
+    # for some reason, no padding is required when computing rows
+    # start at the next column where local box ends + vertical padding
+    drawBox $((main_border_r + 1)) $((LOCAL_FS_COLS + PADDING + 2)) $REMOTE_FS_ROWS $REMOTE_FS_COLS "blue"
+}
+
 setScreenParams
 getScreenDimensions
-drawBox 0 0 $COLS $ROWS green
+initScreen
 
 sleep 10
