@@ -1,5 +1,8 @@
 #!/bin/bash
 
+LOCAL_FILE_LIST_START=0
+LOCAL_FILE_LIST_SELECTED_INDEX=0
+
 setScreenParams() {
     tput clear
     tput civis
@@ -15,7 +18,7 @@ getScreenDimensions() {
     COLS=$(tput cols)
 }
 
-function printInColor() {
+printInColor() {
     local color=0
     local text=$2
 
@@ -30,6 +33,24 @@ function printInColor() {
     fi
     
     echo -ne $color$text'\033[0m'
+}
+
+getLocalFileList() {
+    path=$1
+    if [[ -z path ]]
+    then
+        path=/
+    fi
+    LOCAL_FILE_LIST=(`ls $path`)
+}
+
+getRemoteFileList() {
+    path=$1
+    if [[ -z path ]]
+    then
+        path=/
+    fi
+    REMOTE_FILE_LIST=(`adb shell ls $path`)
 }
 
 drawBox() {
@@ -79,31 +100,114 @@ drawBox() {
 
 }
 
-initScreen() {
+drawMainBox() {
+    local color=$1
     local main_border_r=0
     local main_border_c=0
 
-    drawBox $main_border_r $main_border_c $ROWS $COLS green
-
-    # for some reason, no padding is required when computing rows
-    LOCAL_FS_ROWS=$((ROWS - 2))
-    REMOTE_FS_ROWS=$((ROWS - 2))
-
-    LOCAL_FS_COLS=$(((COLS - PADDING - 2) / 2)) # account for left padding from main border, 2 vertical edges of main border
-    REMOTE_FS_COLS=$(((COLS - PADDING - 2) / 2 - 1)) # account for left padding from main border, 2 vertical edges of main border and one middle padding
-
-    # draw box for local fs
-    # for some reason, no padding is required when computing rows
-    drawBox $((main_border_r + 1)) $((main_border_c + PADDING + 1)) $LOCAL_FS_ROWS $LOCAL_FS_COLS "blue"
-
-    # draw box for remote fs
-    # for some reason, no padding is required when computing rows
-    # start at the next column where local box ends + vertical padding
-    drawBox $((main_border_r + 1)) $((LOCAL_FS_COLS + PADDING + 2)) $REMOTE_FS_ROWS $REMOTE_FS_COLS "blue"
+    drawBox $main_border_r $main_border_c $ROWS $COLS $color
 }
 
-setScreenParams
-getScreenDimensions
-initScreen
+drawLocalFSBox() {
+    color=$1
 
-sleep 10
+    LOCAL_FS_ROWS=$((ROWS - 2)) #for some reason, no padding is required when computing rows
+    LOCAL_FS_COLS=$(((COLS - PADDING - 2) / 2)) #account for left padding from main border, 2 vertical edges of main border
+
+    # for some reason, no padding is required when computing rows
+    drawBox $((main_border_r + 1)) $((main_border_c + PADDING + 1)) $LOCAL_FS_ROWS $LOCAL_FS_COLS $color
+
+}
+
+drawRemoteFSBox() {
+    color=$1
+
+    REMOTE_FS_ROWS=$((ROWS - 2)) #for some reason, no padding is required when computing rows
+    REMOTE_FS_COLS=$(((COLS - PADDING - 2) / 2 - 1)) #account for left padding from main border, 2 vertical edges of main border and one middle padding
+
+    # for some reason, no padding is required when computing rows
+    # start at the next column where local box ends + vertical padding
+    drawBox $((main_border_r + 1)) $((LOCAL_FS_COLS + PADDING + 2)) $REMOTE_FS_ROWS $REMOTE_FS_COLS $color
+}
+
+initScreen() {
+    drawMainBox "green"
+    drawLocalFSBox "blue"
+    drawRemoteFSBox "green"
+    
+    LOCAL_FS_R=$((main_border_r + 1 + 1)) #start from next row where top edge is drawn
+    LOCAL_FS_C=$((main_border_c + PADDING + 1 + 1)) #start from next column where left edge is drawn
+
+    REMOTE_FS_R=$((main_border_r + 1 + 1))
+    REMOTE_FS_C=$((LOCAL_FS_COLS + PADDING + 2 + 1))
+}
+
+populateLocalFS() {
+    tput cup $LOCAL_FS_R $((LOCAL_FS_C + PADDING))
+
+    index=0
+
+    for ((i=1; i <= $REMOTE_FS_ROWS - 2; i++))
+    do
+        local index=$((i - 1 + LOCAL_FILE_LIST_START))
+        if [ $LOCAL_FILE_LIST_SELECTED_INDEX -eq $index ]
+        then
+            printInColor "blue" ${LOCAL_FILE_LIST[index]}
+        else
+            printInColor "green" ${LOCAL_FILE_LIST[index]}
+        fi
+        tput cup $((LOCAL_FS_R + i)) $((LOCAL_FS_C + PADDING))
+    done
+}
+
+userChoiceMapper() {
+    local choice=$1
+
+    local localColor="blue"
+    local remoteColor="green"
+
+    if [[ $choice == 'a' || $choice == 'd' ]]
+    then
+        if [[ $choice == "a" ]]
+        then
+            OPTION="LEFT_BOX"
+            localColor="blue"
+            remoteColor="green"
+        elif [[ $choice == "d" ]]
+        then
+            OPTION='RIGHT_BOX'
+            localColor="green"
+            remoteColor="blue"
+        fi
+        drawLocalFSBox $localColor
+        drawRemoteFSBox $remoteColor
+    fi
+
+    if [[ $choice == "w" ]]
+    then
+        SELECTION="UP"
+        handleScroll
+    elif [[ $choice == 's' ]]
+    then
+        SELECTION="DOWN"
+        handleScroll
+    fi
+}
+
+render () {
+    getLocalFileList "$HOME"
+    getRemoteFileList
+    setScreenParams
+    getScreenDimensions
+    initScreen
+    populateLocalFS
+}
+
+user_choice="="
+render
+
+while [ $user_choice != "q" ]
+do
+    read -n 1 user_choice
+    userChoiceMapper $user_choice
+done
